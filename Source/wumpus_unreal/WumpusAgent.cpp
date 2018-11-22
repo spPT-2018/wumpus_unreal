@@ -22,6 +22,7 @@ void DeallocatePositionVector(std::vector<FVector2D*> vector) {
 WumpusAgent::WumpusAgent()
 {
 	CurrentPosition = FVector2D(0, 0);
+	FoundGold = false;
 }
 
 WumpusAgent::~WumpusAgent()
@@ -94,6 +95,7 @@ FVector2D *WumpusAgent::WhereIWannaGo() {
 	{
 		if (Trace.size() == 0)
 		{
+			UE_LOG(LogTemp, Warning, TEXT("Trace is empty, standing still"))
 			return new FVector2D(0, 0);
 		}
 		auto move = Trace.top();

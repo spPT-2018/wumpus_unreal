@@ -15,7 +15,7 @@ public:
 	const float WorldWidth = 4;
 	WumpusAgent *agentWumpus;
 
-	WumpusEvent<FVector2D> OnMove;
+	WumpusEvent<FVector2D*> OnMove;
 	WumpusVoidEvent OnWumpusEncountered;
 	WumpusVoidEvent OnPitEncountered;
 	WumpusVoidEvent OnTreasureEncountered;

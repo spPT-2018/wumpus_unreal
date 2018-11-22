@@ -30,9 +30,15 @@ void UWorldGenerator::BeginPlay()
 
 	// ...
 	world = new WumpusWorld(wumpi, pits, FVector2D(1, 2));
-	world->OnMove.add_handler([&](FVector2D newAgentPosition) {
-		UE_LOG(LogTemp, Warning, TEXT("Move motherfucker"));
-		auto worldPosition = FVector(newAgentPosition.X * WorldPlacementScale, newAgentPosition.Y * WorldPlacementScale, YActorOffset);
+	world->OnMove.add_handler([&](FVector2D *newAgentPosition) {
+		auto str = FString("Going to (");
+		str.AppendInt(newAgentPosition->X);
+		str.AppendChar(',');
+		str.AppendInt(newAgentPosition->Y);
+		str.AppendChar(')');
+
+		UE_LOG(LogTemp, Warning, TEXT("%s"), *str);
+		auto worldPosition = FVector(newAgentPosition->X * WorldPlacementScale, newAgentPosition->Y * WorldPlacementScale, YActorOffset);
 		this->MoveAgent(worldPosition);
 	});
 

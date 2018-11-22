@@ -95,7 +95,7 @@ void WumpusWorld::Iterate()
 	agentWumpus->CurrentPosition = *agentMove;
 
 	//Todo: Invoke OnMove event
-	OnMove.invoke(*agentMove);
+	OnMove.invoke(agentMove);
 	delete agentMove;
 
 	if (agentWumpus->FoundGold && agentWumpus->CurrentPosition.Equals(FVector2D(0, 0)))
