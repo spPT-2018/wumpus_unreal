@@ -14,8 +14,8 @@ class WUMPUS_UNREAL_API WumpusAgent
 public:
 	bool FoundGold;
 	FVector2D CurrentPosition;
-	std::unordered_map<int, Percepts> PerceptedPlaces;
-	std::unordered_map<int, Knowledge> KnowledgeOfPlaces;
+	std::unordered_map<int, Percepts*> PerceptedPlaces;
+	std::unordered_map<int, Knowledge*> KnowledgeOfPlaces;
 
 	WumpusAgent();
 	~WumpusAgent();

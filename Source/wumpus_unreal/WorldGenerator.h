@@ -6,6 +6,9 @@
 #include "Components/SceneComponent.h"
 #include "WumpusWorld.h"
 #include "Agent.h"
+#include "Runtime/Engine/Classes/Components/AudioComponent.h"
+#include "Sound/SoundCue.h"
+#include "Runtime/CoreUObject/Public/UObject/UObjectGlobals.h"
 #include "WorldGenerator.generated.h"
 
 
@@ -27,6 +30,7 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	void ConstructWumpusWorld();
+	UAudioComponent *CreateAudioComponent(const char *name);
 	//The actor to spawn in the world
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<AActor> PlatformBlueprint;
@@ -41,6 +45,24 @@ public:
 	UPROPERTY(EditAnywhere)
 		TSubclassOf<AActor> TreasureBlueprint;
 
+	UPROPERTY(EditAnywhere, Category = "Sound")
+		USoundCue *pitSound;
+	UPROPERTY(EditAnywhere, Category = "Sound")
+		USoundCue *wumpusSound;
+	UPROPERTY(EditAnywhere, Category = "Sound")
+		USoundCue *goldSound;
+	UPROPERTY(EditAnywhere, Category = "Sound")
+		USoundCue *breezeSound;
+	UPROPERTY(EditAnywhere, Category = "Sound")
+		USoundCue *stenchSound;
+	UPROPERTY(EditAnyWhere, Category = "Sound")
+		USoundCue *goalSound;
+	UPROPERTY(EditAnyWhere, Category = "Sound")
+		USoundCue *moveSound;
+
+	UAudioComponent *MoveAudio;
+	UAudioComponent *FXAudio;
+
 	UPROPERTY(EditAnywhere)
 		float YActorOffset;
 	UPROPERTY(EditAnywhere)
@@ -53,6 +75,7 @@ private:
 	AActor *treasure;
 	UAgent *agent;
 	float updateTimer;
+	bool gameRunning;
 
 	AActor *SpawnBlueprintAt(UWorld *theWorld, TSubclassOf<AActor> blueprint, float x, float y, float heightOffset = 0, float scale = 1.0f);
 	void MoveAgent(FVector newPosition, float moveDuration = 1.0f);

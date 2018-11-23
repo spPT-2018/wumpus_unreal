@@ -2,13 +2,19 @@
 
 #include "WorldGenerator.h"
 
-
 // Sets default values for this component's properties
 UWorldGenerator::UWorldGenerator()
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
+
+	FXAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("FXAudio"));
+	FXAudio->bAutoActivate = false;
+	MoveAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("MoveAudio"));
+	MoveAudio->bAutoActivate = false;
+
+	gameRunning = true;
 }
 
 UWorldGenerator::~UWorldGenerator() {
@@ -21,6 +27,8 @@ void UWorldGenerator::BeginPlay()
 {
 	Super::BeginPlay();
 
+	MoveAudio->SetSound(moveSound);
+
 	auto *wumpi = new std::vector<FVector2D*>();
 	wumpi->push_back(new FVector2D(0, 2));
 	auto *pits = new std::vector<FVector2D*>();
@@ -31,15 +39,36 @@ void UWorldGenerator::BeginPlay()
 	// ...
 	world = new WumpusWorld(wumpi, pits, FVector2D(1, 2));
 	world->OnMove.add_handler([&](FVector2D *newAgentPosition) {
-		auto str = FString("Going to (");
-		str.AppendInt(newAgentPosition->X);
-		str.AppendChar(',');
-		str.AppendInt(newAgentPosition->Y);
-		str.AppendChar(')');
-
-		UE_LOG(LogTemp, Warning, TEXT("%s"), *str);
+		UE_LOG(LogTemp, Warning, TEXT("(%f,%f)"), newAgentPosition->X, newAgentPosition->Y);
 		auto worldPosition = FVector(newAgentPosition->X * WorldPlacementScale, newAgentPosition->Y * WorldPlacementScale, YActorOffset);
 		this->MoveAgent(worldPosition);
+		MoveAudio->Play();
+	});
+	world->OnBreezePercepted.add_handler([&]() {
+		FXAudio->SetSound(breezeSound);
+		FXAudio->Play();
+	});
+	world->OnStenchPercepted.add_handler([&]() {
+		FXAudio->SetSound(stenchSound);
+		FXAudio->Play();
+	});
+	world->OnTreasureEncountered.add_handler([&]() {
+		FXAudio->SetSound(goldSound);
+		FXAudio->Play();
+		treasure->Destroy();
+	});
+	world->OnPitEncountered.add_handler([&]() {
+		FXAudio->SetSound(pitSound);
+		FXAudio->Play();
+	});
+	world->OnWumpusEncountered.add_handler([&]() {
+		FXAudio->SetSound(wumpusSound);
+		FXAudio->Play();
+	});
+	world->OnGoalComplete.add_handler([&]() {
+		FXAudio->SetSound(goalSound);
+		FXAudio->Play();
+		gameRunning = false;
 	});
 
 	// ...
@@ -51,6 +80,9 @@ void UWorldGenerator::BeginPlay()
 void UWorldGenerator::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	if (!gameRunning)
+		return;
 
 	// ...
 	if (this->updateTimer > TimeBetweenUpdates) {

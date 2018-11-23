@@ -9,6 +9,9 @@ WumpusWorld::WumpusWorld(std::vector<FVector2D*> *wumpusPositions, std::vector<F
 	this->wumpusPositions = wumpusPositions;
 
 	agentWumpus = new WumpusAgent();
+
+	auto first_thoughts = GeneratePercepts();
+	agentWumpus->PerceiveCurrentPosition(*first_thoughts);
 }
 
 WumpusWorld::~WumpusWorld()

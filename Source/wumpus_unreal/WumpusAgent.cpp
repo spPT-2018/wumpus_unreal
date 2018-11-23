@@ -27,15 +27,20 @@ WumpusAgent::WumpusAgent()
 
 WumpusAgent::~WumpusAgent()
 {
-	
+	for (auto& k : KnowledgeOfPlaces) {
+		delete k.second;
+	}
+	for (auto& p : PerceptedPlaces) {
+		delete p.second;
+	}
 }
 
-bool has_percepted(std::unordered_map<int, Percepts> map, FVector2D key) {
+bool has_percepted(std::unordered_map<int, Percepts*> map, FVector2D key) {
 	auto pos_hash = hash_position(key);
 
 	return map.find(pos_hash) != map.end();
 }
-bool has_knowledge(std::unordered_map<int, Knowledge> map, FVector2D key) {
+bool has_knowledge(std::unordered_map<int, Knowledge*> map, FVector2D key) {
 	auto pos_hash = hash_position(key);
 
 	return map.find(pos_hash) != map.end();
@@ -55,8 +60,15 @@ void WumpusAgent::TellMeAboutTheWorld(int width, int height) {
 void WumpusAgent::PerceiveCurrentPosition(Percepts percepts) {
 	auto pos_hash = hash_position(CurrentPosition);
 
-	PerceptedPlaces[pos_hash] = percepts;
-	KnowledgeOfPlaces[pos_hash] = Knowledge();
+	if (!has_percepted(PerceptedPlaces, CurrentPosition)) {
+		PerceptedPlaces[pos_hash] = new Percepts(percepts);
+	}
+	if (!has_knowledge(KnowledgeOfPlaces, CurrentPosition)) {
+		auto k = new Knowledge();
+		k->MightHavePit = false;
+		k->MightHaveWumpus = false;
+		KnowledgeOfPlaces[pos_hash] = k;
+	}
 
 	if (percepts.Glitter)
 	{
@@ -65,34 +77,35 @@ void WumpusAgent::PerceiveCurrentPosition(Percepts percepts) {
 
 	std::vector<FVector2D*> moves;
 	PossibleMoves(&moves);
-	std::vector<FVector2D*> newPlacesToGo;
-	filter(moves, &newPlacesToGo, [this](FVector2D *p) -> bool { return has_percepted(PerceptedPlaces, *p); });
 
-	for (auto position = newPlacesToGo.begin(); position != newPlacesToGo.end(); ++position) {
-		auto hasKnowledge = has_knowledge(KnowledgeOfPlaces, **position);
+	for (auto& position : moves) {
+		auto hasKnowledge = has_knowledge(KnowledgeOfPlaces, *position);
 		auto position_hash = hash_position(*position);
 
 		if (hasKnowledge)
 		{
 			auto knowledge = KnowledgeOfPlaces[position_hash];
-			if (!percepts.Stench && knowledge.MightHaveWumpus)
-				knowledge.MightHaveWumpus = false;
+			if (!percepts.Stench && knowledge->MightHaveWumpus)
+				knowledge->MightHaveWumpus = false;
 
-			if (!percepts.Breeze && knowledge.MightHavePit)
-				knowledge.MightHavePit = false;
+			if (!percepts.Breeze && knowledge->MightHavePit)
+				knowledge->MightHavePit = false;
 		}
 		else
 		{
-			auto knowledge = Knowledge();
-			knowledge.MightHavePit = percepts.Breeze;
-			knowledge.MightHaveWumpus = percepts.Stench;
+			auto knowledge = new Knowledge();
+			knowledge->MightHavePit = percepts.Breeze;
+			knowledge->MightHaveWumpus = percepts.Stench;
 			KnowledgeOfPlaces[position_hash] = knowledge;
 		}
 	}
+
+	DeallocatePositionVector(moves);
 }
 FVector2D *WumpusAgent::WhereIWannaGo() {
 	if (FoundGold)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("I have found the gold"))
 		if (Trace.size() == 0)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Trace is empty, standing still"))
@@ -115,8 +128,22 @@ FVector2D *WumpusAgent::WhereIWannaGo() {
 		std::vector<FVector2D*> safeNewPlacesToGo;
 		filter(newPlacesToGo, &safeNewPlacesToGo, [this](FVector2D *p) -> bool { return IKnowItsSafe(*p); });
 
+		/*UE_LOG(LogTemp, Warning, TEXT("Places to go from (%f,%f): "), CurrentPosition.X, CurrentPosition.Y);
+		for (auto& p : placesToGo) {
+			UE_LOG(LogTemp, Warning, TEXT("(%f,%f)"), p->X, p->Y);
+		}*/
+		UE_LOG(LogTemp, Warning, TEXT("Current percepts:"));
+		for (auto& p : PerceptedPlaces) {
+			UE_LOG(LogTemp, Warning, TEXT("Percepts in (%d): Breeze %d, Glitter %d, Stench %d"), p.first, p.second->Breeze, p.second->Glitter, p.second->Stench);
+		}
+		UE_LOG(LogTemp, Warning, TEXT("Current knowledge"));
+		for (auto& p : KnowledgeOfPlaces) {
+			UE_LOG(LogTemp, Warning, TEXT("Knowledge in (%d): Pit %d, Wumpus %d"), p.first, p.second->MightHavePit, p.second->MightHaveWumpus);
+		}
+
 		if (safeNewPlacesToGo.size() > 0)
 		{
+			UE_LOG(LogTemp, Warning, TEXT("There is a safe new place to go, going there."))
 			auto move = safeNewPlacesToGo.at(0);
 			auto move_copy = new FVector2D(*move);
 			auto move_copy2 = new FVector2D(*move);
@@ -132,6 +159,7 @@ FVector2D *WumpusAgent::WhereIWannaGo() {
 		
 		if (safePlacesToGo.size() > 0)
 		{
+			UE_LOG(LogTemp, Warning, TEXT("There is a safe place to go, going there"))
 			auto move = safePlacesToGo.at(0);
 			auto move_copy = new FVector2D(*move);
 			auto move_copy2 = new FVector2D(*move);
@@ -142,6 +170,7 @@ FVector2D *WumpusAgent::WhereIWannaGo() {
 			return move_copy;
 		}
 
+		UE_LOG(LogTemp, Warning, TEXT("Executing an unsafe move"))
 		auto dangerousMove = newPlacesToGo.size() > 0 ? newPlacesToGo.at(0) : placesToGo.at(0);
 		auto move_copy = new FVector2D(*dangerousMove);
 		auto move_copy2 = new FVector2D(*dangerousMove);
@@ -157,16 +186,24 @@ bool WumpusAgent::IKnowItsSafe(FVector2D position) {
 	auto p = hash_position(position);
 
 	return has_knowledge(KnowledgeOfPlaces, position) &&
-		!KnowledgeOfPlaces[p].MightHaveWumpus &&
-		!KnowledgeOfPlaces[p].MightHavePit;
+		!KnowledgeOfPlaces[p]->MightHaveWumpus &&
+		!KnowledgeOfPlaces[p]->MightHavePit;
 }
 void WumpusAgent::PossibleMoves(std::vector<FVector2D*> *possiblePositions) {
 	if (CurrentPosition.X > 0) // we can go west
+	{
 		possiblePositions->push_back(new FVector2D(CurrentPosition.X - 1, CurrentPosition.Y));
+	}
 	if (CurrentPosition.X < WorldWidth - 1) // we can go east
+	{
 		possiblePositions->push_back(new FVector2D(CurrentPosition.X + 1, CurrentPosition.Y));
+	}
 	if (CurrentPosition.Y > 0) // we can go south
+	{
 		possiblePositions->push_back(new FVector2D(CurrentPosition.X, CurrentPosition.Y - 1));
+	}
 	if (CurrentPosition.Y < WorldHeight - 1) // we can go north
+	{
 		possiblePositions->push_back(new FVector2D(CurrentPosition.X, CurrentPosition.Y + 1));
+	}
 }
