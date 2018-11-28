@@ -33,18 +33,25 @@ void UAgent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponent
 	// ...
 	this->timeSpent+= DeltaTime;
 
-	if (FMath::IsNearlyZero(FVector::Dist(owner->GetActorLocation(), lerpDestination))) {
-		owner->SetActorLocation(lerpDestination);
+	if (lerping && timeSpent > duration) {
+		owner->SetActorLocation(*lerpDestination);
+		lerping = false;
 	}
 	else
 	{
-		owner->SetActorLocation(FMath::Lerp(owner->GetActorLocation(), lerpDestination, timeSpent / duration));
+		owner->SetActorLocation(FMath::Lerp(owner->GetActorLocation(), *lerpDestination, timeSpent / duration));
 	}
 }
 
 void UAgent::SetLerpDestination(FVector destination, float duration) {
+	if (this->lerpDestination)
+		delete this->lerpDestination;
+
+	//UE_LOG(LogTemp, Error, TEXT("Moving agent to (%f,%f,%f)"), destination.X, destination.Y, destination.Z)
+
 	this->duration = duration;
-	this->lerpDestination = destination;
+	this->lerpDestination = new FVector(destination);
 	this->timeSpent = 0;
+	lerping = true;
 }
 

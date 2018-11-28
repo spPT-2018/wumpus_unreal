@@ -12,6 +12,7 @@ WumpusWorld::WumpusWorld(std::vector<FVector2D*> *wumpusPositions, std::vector<F
 
 	auto first_thoughts = GeneratePercepts();
 	agentWumpus->PerceiveCurrentPosition(*first_thoughts);
+	delete first_thoughts;
 }
 
 WumpusWorld::~WumpusWorld()
@@ -127,4 +128,10 @@ void WumpusWorld::Iterate()
 	}
 
 	agentWumpus->PerceiveCurrentPosition(*percepts);
+	delete percepts;
+}
+
+void WumpusWorld::Reset() {
+	agentWumpus->FoundGold= false;
+	agentWumpus->ClearTrace();
 }

@@ -9,6 +9,10 @@
 #include "Runtime/Engine/Classes/Components/AudioComponent.h"
 #include "Sound/SoundCue.h"
 #include "Runtime/CoreUObject/Public/UObject/UObjectGlobals.h"
+#include <FileHelper.h>
+#include <PlatformFilemanager.h>
+#include <PlatformFile.h>
+#include "Timer.h"
 #include "WorldGenerator.generated.h"
 
 
@@ -76,6 +80,9 @@ private:
 	UAgent *agent;
 	float updateTimer;
 	bool gameRunning;
+	const int numberOfIterations = 10;
+	int iterations = 0;
+	int repeats = 0;
 
 	AActor *SpawnBlueprintAt(UWorld *theWorld, TSubclassOf<AActor> blueprint, float x, float y, float heightOffset = 0, float scale = 1.0f);
 	void MoveAgent(FVector newPosition, float moveDuration = 1.0f);

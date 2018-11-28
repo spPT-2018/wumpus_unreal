@@ -35,6 +35,23 @@ WumpusAgent::~WumpusAgent()
 	}
 }
 
+void WumpusAgent::ClearTrace() {
+	//Clear all traces, percepts and knowledge
+	while (!Trace.empty()) {
+		auto p = Trace.top();
+		Trace.pop();
+		delete p;
+	}
+	for (auto& k : KnowledgeOfPlaces) {
+		delete k.second;
+	}
+	KnowledgeOfPlaces = std::unordered_map<int, Knowledge*>();
+	for (auto& p : PerceptedPlaces) {
+		delete p.second;
+	}
+	PerceptedPlaces = std::unordered_map<int, Percepts*>();
+}
+
 bool has_percepted(std::unordered_map<int, Percepts*> map, FVector2D key) {
 	auto pos_hash = hash_position(key);
 
@@ -105,10 +122,8 @@ void WumpusAgent::PerceiveCurrentPosition(Percepts percepts) {
 FVector2D *WumpusAgent::WhereIWannaGo() {
 	if (FoundGold)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("I have found the gold"))
 		if (Trace.size() == 0)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Trace is empty, standing still"))
 			return new FVector2D(0, 0);
 		}
 		auto move = Trace.top();
@@ -132,18 +147,9 @@ FVector2D *WumpusAgent::WhereIWannaGo() {
 		for (auto& p : placesToGo) {
 			UE_LOG(LogTemp, Warning, TEXT("(%f,%f)"), p->X, p->Y);
 		}*/
-		UE_LOG(LogTemp, Warning, TEXT("Current percepts:"));
-		for (auto& p : PerceptedPlaces) {
-			UE_LOG(LogTemp, Warning, TEXT("Percepts in (%d): Breeze %d, Glitter %d, Stench %d"), p.first, p.second->Breeze, p.second->Glitter, p.second->Stench);
-		}
-		UE_LOG(LogTemp, Warning, TEXT("Current knowledge"));
-		for (auto& p : KnowledgeOfPlaces) {
-			UE_LOG(LogTemp, Warning, TEXT("Knowledge in (%d): Pit %d, Wumpus %d"), p.first, p.second->MightHavePit, p.second->MightHaveWumpus);
-		}
 
 		if (safeNewPlacesToGo.size() > 0)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("There is a safe new place to go, going there."))
 			auto move = safeNewPlacesToGo.at(0);
 			auto move_copy = new FVector2D(*move);
 			auto move_copy2 = new FVector2D(*move);
@@ -159,7 +165,6 @@ FVector2D *WumpusAgent::WhereIWannaGo() {
 		
 		if (safePlacesToGo.size() > 0)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("There is a safe place to go, going there"))
 			auto move = safePlacesToGo.at(0);
 			auto move_copy = new FVector2D(*move);
 			auto move_copy2 = new FVector2D(*move);
@@ -170,7 +175,6 @@ FVector2D *WumpusAgent::WhereIWannaGo() {
 			return move_copy;
 		}
 
-		UE_LOG(LogTemp, Warning, TEXT("Executing an unsafe move"))
 		auto dangerousMove = newPlacesToGo.size() > 0 ? newPlacesToGo.at(0) : placesToGo.at(0);
 		auto move_copy = new FVector2D(*dangerousMove);
 		auto move_copy2 = new FVector2D(*dangerousMove);

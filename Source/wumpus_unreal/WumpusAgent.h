@@ -24,6 +24,8 @@ public:
 	void PerceiveCurrentPosition(Percepts percepts);
 	FVector2D *WhereIWannaGo();
 
+	void ClearTrace();
+
 private:
 	int WorldHeight;
 	int WorldWidth;

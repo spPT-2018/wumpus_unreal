@@ -27,7 +27,8 @@ public:
 	void SetLerpDestination(FVector destination, float duration = 1.0f);
 		
 private:
-	FVector lerpDestination;
+	FVector *lerpDestination;
 	float timeSpent, duration;
 	AActor *owner;
+	bool lerping;
 };

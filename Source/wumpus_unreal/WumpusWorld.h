@@ -36,6 +36,7 @@ public:
 	static void DeallocatePositionVector(std::vector<FVector2D*> *vector);
 
 	void Iterate();
+	void Reset();
 
 private:
 	std::vector<FVector2D*> *wumpusPositions;

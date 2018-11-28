@@ -17,15 +17,47 @@ UWorldGenerator::UWorldGenerator()
 	gameRunning = true;
 }
 
+FString SaveDirectory = FString("C:/Users/tobia/Documents/GitHub/wumpus_unreal/");
+FString FileName = FString("Wumpus (Editor).csv");
+bool AllowOverwriting = true;
+
+IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+
+std::string test_results = "";
+
+static void write_to_log_file() {
+	// CreateDirectoryTree returns true if the destination
+	// directory existed prior to call or has been created
+	// during the call.
+	if (PlatformFile.CreateDirectoryTree(*SaveDirectory)) {
+		// Get absolute file path
+		FString AbsoluteFilePath = SaveDirectory + "/" + FileName;
+
+		// Allow overwriting or file doesn't already exist
+		if (AllowOverwriting || !PlatformFile.FileExists(*AbsoluteFilePath)) {
+			FFileHelper::SaveStringToFile(FString(test_results.c_str()), *AbsoluteFilePath);
+		}
+	}
+}
+
+static void open_file() {
+	test_results += "Iteration no.;Iteration time (ms)\n";
+}
+
 UWorldGenerator::~UWorldGenerator() {
 	delete world;
 }
 
+static void append_to_log(std::string msg) {
+	test_results += msg;
+}
 
 // Called when the game starts
 void UWorldGenerator::BeginPlay()
 {
 	Super::BeginPlay();
+
+	open_file();
 
 	MoveAudio->SetSound(moveSound);
 
@@ -39,7 +71,6 @@ void UWorldGenerator::BeginPlay()
 	// ...
 	world = new WumpusWorld(wumpi, pits, FVector2D(1, 2));
 	world->OnMove.add_handler([&](FVector2D *newAgentPosition) {
-		UE_LOG(LogTemp, Warning, TEXT("(%f,%f)"), newAgentPosition->X, newAgentPosition->Y);
 		auto worldPosition = FVector(newAgentPosition->X * WorldPlacementScale, newAgentPosition->Y * WorldPlacementScale, YActorOffset);
 		this->MoveAgent(worldPosition);
 		MoveAudio->Play();
@@ -68,7 +99,13 @@ void UWorldGenerator::BeginPlay()
 	world->OnGoalComplete.add_handler([&]() {
 		FXAudio->SetSound(goalSound);
 		FXAudio->Play();
-		gameRunning = false;
+
+		world->Reset();
+		treasure = SpawnBlueprintAt(GetWorld(), TreasureBlueprint, 1, 2, YActorOffset, 0.7f);
+		repeats++;
+		gameRunning = repeats < numberOfIterations;
+		if (!gameRunning)
+			write_to_log_file();
 	});
 
 	// ...
@@ -82,14 +119,24 @@ void UWorldGenerator::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	if (!gameRunning)
+	{
 		return;
+	}
 
 	// ...
 	if (this->updateTimer > TimeBetweenUpdates) {
-		auto currentLocation = agent->GetOwner()->GetActorLocation();
-		auto newPos = FVector(currentLocation.X + WorldPlacementScale, currentLocation.Y, currentLocation.Z);
+		auto t = Timer();
+
+		t.play();
 		updateTimer = 0;
 		world->Iterate();
+		auto time = t.check_time();
+
+		char buff[100];
+		snprintf(buff, sizeof(buff), "%d;%f\n", iterations, time / 1000000);
+		std::string buffAsStdStr = buff;
+		append_to_log(buffAsStdStr);
+		iterations++;
 	}
 	else
 		updateTimer += DeltaTime;
